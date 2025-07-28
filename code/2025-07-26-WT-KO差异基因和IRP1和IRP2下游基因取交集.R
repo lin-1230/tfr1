@@ -81,24 +81,31 @@ readDEG <- function(DEGdir, DEclass, pvalue = 0.05, logfc = 1,csvDir=NULL) {
 # 调用函数读取差异基因
 # DEG_All_result <- readDEG(DEGdir, DEclass = 'ALL', pvalue = 0.05, logfc = 1)
 # DEGdir <- '/Users/lin/Desktop/backup/project/tfr1/result/2025-04-09-zhuShi/分群结果_dim-9_resolution-0.3/DEG/'
+
+dir.create(paste0(resultDir,'DEGeneList_1/'), recursive = TRUE)
+dir.create(paste0(resultDir,'DEGeneList_0p5/'), recursive = TRUE)
+
+DEGListDir_1 <- paste0(resultDir,'DEGeneList_1/')
+DEGListDir_0p5 <- paste0(resultDir,'DEGeneList_0p5/')
+
 ## ALL
-DEG_All_result_1 <- readDEG(DEGdir, DEclass = 'ALL', pvalue = 0.05, logfc = 1,csvDir=resultDir)
-DEG_All_result_0p5 <- readDEG(DEGdir, DEclass = 'ALL', pvalue = 0.05, logfc = 0.5,csvDir=resultDir)
+DEG_All_result_1 <- readDEG(DEGdir, DEclass = 'ALL', pvalue = 0.05, logfc = 1,csvDir=DEGListDir_1)
+DEG_All_result_0p5 <- readDEG(DEGdir, DEclass = 'ALL', pvalue = 0.05, logfc = 0.5,csvDir=DEGListDir_0p5)
 ## HSC
-DEG_HSC_result_1 <- readDEG(DEGdir, DEclass = 'HSC', pvalue = 0.05, logfc = 1)
-DEG_HSC_result_0p5 <- readDEG(DEGdir, DEclass = 'HSC', pvalue = 0.05, logfc = 0.5)
+DEG_HSC_result_1 <- readDEG(DEGdir, DEclass = 'HSC', pvalue = 0.05, logfc = 1,csvDir=DEGListDir_1)
+DEG_HSC_result_0p5 <- readDEG(DEGdir, DEclass = 'HSC', pvalue = 0.05, logfc = 0.5,csvDir=DEGListDir_0p5)
 ## MPP1
-DEG_MPP1_result_1 <- readDEG(DEGdir, DEclass = 'MPP1', pvalue = 0.05, logfc = 1)
-DEG_MPP1_result_0p5 <- readDEG(DEGdir, DEclass = 'MPP1', pvalue = 0.05, logfc = 0.5)
+DEG_MPP1_result_1 <- readDEG(DEGdir, DEclass = 'MPP1', pvalue = 0.05, logfc = 1,csvDir=DEGListDir_1)
+DEG_MPP1_result_0p5 <- readDEG(DEGdir, DEclass = 'MPP1', pvalue = 0.05, logfc = 0.5,csvDir=DEGListDir_0p5)
 ## MPP2_3
-DEG_MPP2_3_result_1 <- readDEG(DEGdir, DEclass = 'MPP2_3', pvalue = 0.05, logfc = 1)
-DEG_MPP2_3_result_0p5 <- readDEG(DEGdir, DEclass = 'MPP2_3', pvalue = 0.05, logfc = 0.5)
+DEG_MPP2_3_result_1 <- readDEG(DEGdir, DEclass = 'MPP2_3', pvalue = 0.05, logfc = 1,csvDir=DEGListDir_1)
+DEG_MPP2_3_result_0p5 <- readDEG(DEGdir, DEclass = 'MPP2_3', pvalue = 0.05, logfc = 0.5,csvDir=DEGListDir_0p5)
 ## MPP4
-DEG_MPP4_result_1 <- readDEG(DEGdir, DEclass = 'MPP4', pvalue = 0.05, logfc = 1)
-DEG_MPP4_result_0p5 <- readDEG(DEGdir, DEclass = 'MPP4', pvalue = 0.05, logfc = 0.5)
+DEG_MPP4_result_1 <- readDEG(DEGdir, DEclass = 'MPP4', pvalue = 0.05, logfc = 1,csvDir=DEGListDir_1)
+DEG_MPP4_result_0p5 <- readDEG(DEGdir, DEclass = 'MPP4', pvalue = 0.05, logfc = 0.5,csvDir=DEGListDir_0p5)
 ## cycling_MPP2_3
-DEG_cMPP2_3_result_1 <- readDEG(DEGdir, DEclass = 'cycling_MPP2_3', pvalue = 0.05, logfc = 1)
-DEG_cMPP2_3_result_0p5 <- readDEG(DEGdir, DEclass = 'cycling_MPP2_3', pvalue = 0.05, logfc = 0.5)
+DEG_cMPP2_3_result_1 <- readDEG(DEGdir, DEclass = 'cycling_MPP2_3', pvalue = 0.05, logfc = 1,csvDir=DEGListDir_1)
+DEG_cMPP2_3_result_0p5 <- readDEG(DEGdir, DEclass = 'cycling_MPP2_3', pvalue = 0.05, logfc = 0.5,csvDir=DEGListDir_0p5)
 
 
 ## 提取差异基因
