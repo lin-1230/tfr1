@@ -166,8 +166,6 @@ DEG_list_0p5 <- list(
 )
 
 ## 自定义一个函数，分别与IRP1和IRP2 的下游基因取交集，并保存
-DEGList <- DEG_list_1
-
 interGeneSet <- function(DEGList , IRP, outDir){
   ## 参数解释
   ## DEGList: 差异分析结果列表
@@ -197,6 +195,14 @@ interGeneSet <- function(DEGList , IRP, outDir){
     cat(cellType, 'UP-IRP2:', nrow(res_up_IPR2), '\n')
     cat(cellType, 'DOWN-IRP1:', nrow(res_down_IPR1), '\n')
     cat(cellType, 'DOWN-IRP2:', nrow(res_down_IPR2), '\n')
+
+    cat('------------------', '\n')
+    ## 输出基因
+    cat(cellType, 'UP-IRP1:', res_up_IPR1$V1, '\n')
+    cat(cellType, 'UP-IRP2:', res_up_IPR2$V1, '\n')
+    cat(cellType, 'DOWN-IRP1:', res_down_IPR1$V1, '\n')
+    cat(cellType, 'DOWN-IRP2:', res_down_IPR2$V1, '\n')
+
 
     ## 保存结果
     write.csv(res_up_IPR1, file = paste0(outDir, '/', cellType, '_up_IPR1.csv'), row.names = F)
@@ -244,7 +250,8 @@ interGeneSetGroup <- function(DEGList, geneSet, setName, outDir) {
   
   ## 创建输出目录
   dir.create(outDir, recursive = TRUE)
-  
+  resultList <- list()
+
   ## 遍历DEGList中每种细胞类型
   for (cellType in names(DEGList)) {
     ## 分别取交集
@@ -258,9 +265,21 @@ interGeneSetGroup <- function(DEGList, geneSet, setName, outDir) {
     res_down <- res_down[order(res_down$avg_log2FC, decreasing = FALSE),]
     
     ## 输出交集后的基因数量
+    cat('-------------------------------------', '\n')
     cat(cellType, paste0('UP-', setName, ':'), nrow(res_up), '\n')
     cat(cellType, paste0('DOWN-', setName, ':'), nrow(res_down), '\n')
     
+    ## 输出交集后的基因名称
+    cat(cellType, paste0('UP-', setName, ':'), res_up$V1, '\n')
+    cat(cellType, paste0('DOWN-', setName, ':'), res_down$V1, '\n')
+
+    ## 把结果保存到list中
+    ## 把结果保存到list中
+    resultList[[cellType]] <- list(
+      up = res_up,
+      down = res_down
+    )
+
     ## 保存结果
     write.csv(res_up, 
               file = paste0(outDir, '/', cellType, '_up_', setName, '.csv'), 
@@ -269,6 +288,7 @@ interGeneSetGroup <- function(DEGList, geneSet, setName, outDir) {
               file = paste0(outDir, '/', cellType, '_down_', setName, '.csv'), 
               row.names = FALSE)
   }
+  return(resultList)
 }
 resultDir <- '/Users/lin/Desktop/backup/project/tfr1/result/2025-07-26-WT-KO差异基因和IRP1和IRP2下游基因取交集'
 dir.create(resultDir,recursive = T)
@@ -307,9 +327,103 @@ interGeneSetGroup(DEG_list_0p5, SIREGenes_nd, "SIRE_nd", genesDir_0p5)
 interGeneSetGroup(DEG_list_0p5, SIREGenes_d, "SIRE_d", genesDir_0p5)
 
 
+
+###################################################
+# @date 2025-07-29
+# @author ljh
+# @description 差异基因与homer预测的IRE基因取交集
+###################################################
+
 ## 读取homer结果
-homerIre <- fread('/Users/lin/Desktop/backup/project/tfr1/result/homer预测IRE/IRE_CAGTGN_0_filtered_genes.txt',header = F)
+# homerIre <- fread('/Users/lin/Desktop/backup/project/tfr1/result/homer预测IRE/IRE_CAGTGN_0_filtered_genes.txt',header = F)
+homerIre <- fread('/media/ssd/sdb1/data/ljh/TFR1/result/2025-07-25-IRE/homer_geneBody/res_IRE_CAGTGN_0.motif/IRE_CAGTGN_0_filtered_genes.txt',header=F)
 ## check
 head(homerIre)
 
-interGeneSetGroup(DEG_list_0p5, homerIre$V1, "homerIre", genesDir_0p5)
+homerResult <- interGeneSetGroup(DEG_list_0p5, homerIre$V1, "homerIre", genesDir_0p5)
+
+## 绘制homer预测结果与差异基因交集的基因的表达热图
+plotGeneExpressionHeatmap <- function(seurat_obj, 
+                                    features,
+                                    group_by,
+                                    output_dir,
+                                    output_filename,
+                                    main,
+                                    height = 2.5,
+                                    width = 6) {
+    
+
+    ## 参数解释
+    # seurat_obj: seurat对象
+    # features: 要查看的基因列表
+    # group_by: 分组变量
+    # output_dir: 输出目录
+    # output_filename: 输出文件名
+    # main: 热图标题
+    # height: 热图高度
+    # width: 热图宽度
+
+
+    # 计算平均表达值
+    avg_expr <- AverageExpression(seurat_obj, 
+                                features = features,
+                                group.by = group_by,
+                                slot = "data")
+    
+    # 将矩阵数据转换为热图格式
+    plot_matrix <- as.matrix(avg_expr$RNA)
+    
+    # 对每一行进行scale标准化处理
+    plot_matrix_scaled <- t(scale(t(plot_matrix)))
+    
+    # 使用pheatmap绘制热图
+    library(pheatmap)
+    
+    pdf(file = file.path(output_dir, output_filename), height = height, width = width)
+    pheatmap(plot_matrix_scaled,
+             display_numbers = TRUE,  # 显示具体数值
+             cluster_rows = TRUE,    # 对行进行聚类
+             cluster_cols = FALSE,    # 不对列进行聚类
+             main = main,
+             fontsize = 10,          # 设置字体大小
+             angle_col = 45,         # 设置列名角度
+             number_format = "%.3f")  # 设置数值格式为3位小数
+    dev.off()
+}
+
+## 读取SeuratOb
+SeuratOb <- qread(paste0(RDSDir,'SeuratOb_20250728.qs'))
+
+head(SeuratOb)
+dir.create('result/20250729',recursive = T)
+for (name in names(homerResult)) {
+
+  cat('-----------------------------------')
+  cat(paste0('正在绘制', name, '的热图\n'))
+
+
+  ##UP 
+  cat('正在绘制UP的热图','\n')
+  geneSet_up <- homerResult[[name]]$up$V1
+  plotGeneExpressionHeatmap(SeuratOb,
+                         features = geneSet_up,
+                         group_by = "group2",
+                         output_dir = "result/20250729",
+                         output_filename = paste0(name,'_up_avgExpr.pdf'),
+                         main = paste0("mean Exp of ",name," up genes"),
+                         height = length(geneSet_up)*0.25,
+                         width = 6)
+
+    ## DOWN
+    cat('正在绘制DOWN的热图','\n')
+    geneSet_down <- homerResult[[name]]$down$V1
+    plotGeneExpressionHeatmap(SeuratOb,
+                             features = geneSet_down,
+                             group_by = "group2",
+                             output_dir = "result/20250729",
+                             output_filename = paste0(name,'_down_avgExpr.pdf'),
+                             main = paste0("mean Exp of ",name," down genes"),
+                             height = length(geneSet_down)*0.25,
+                             width = 6)
+                    
+}
