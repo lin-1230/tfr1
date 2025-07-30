@@ -427,3 +427,125 @@ for (name in names(homerResult)) {
                              width = 6)
                     
 }
+
+
+## MPP2_3 DOWN 绘制的图重新调整高度
+plotGeneExpressionHeatmap(SeuratOb,
+                         features = homerResult$MPP2_3$down$V1,
+                         group_by = "group2",
+                         output_dir = "result/20250729",
+                         output_filename = 'MPP2_3_down_avgExpr.pdf',
+                         main = paste0("mean Exp of MPP2_3 down genes"),
+                         height = 4,
+                         width = 6)
+
+
+
+## 绘制这些list中的交集结果
+
+# 创建空列表存储up和down基因
+up_genes <- list()
+down_genes <- list()
+
+# 遍历homerResult中的每个细胞类型
+for(cell_type in names(homerResult)) {
+  # 提取up基因
+  up_genes[[cell_type]] <- homerResult[[cell_type]]$up$V1
+  
+  # 提取down基因
+  down_genes[[cell_type]] <- homerResult[[cell_type]]$down$V1
+}
+
+# 打印结果
+cat("上调基因列表:\n")
+print(up_genes)
+
+cat("\n下调基因列表:\n") 
+print(down_genes)
+
+library(UpSetR)
+
+
+# 创建UpSet图
+
+input <- up_genes
+
+fromList2 <- function (input)
+{
+    elements <- unique(unlist(input))
+    data <- unlist(lapply(input, function(x) {
+        x <- as.vector(match(elements, x))
+    }))
+    data[is.na(data)] <- as.integer(0)
+    data[data != 0] <- as.integer(1)
+    data <- data.frame(matrix(data, ncol = length(input), byrow = F))
+    row.names(data) <- elements
+    data <- data[which(rowSums(data) != 0), ]
+    names(data) <- names(input)
+    return(data)
+}
+
+
+fromList2(up_genes)
+
+
+## 绘制上调基因的UpSet图
+pdf(file = 'result/20250729/upset_up.pdf',height = 4,width = 6)
+upset(fromList2(up_genes), 
+      nsets = length(up_genes),  # 显示所有集合
+      # main.bar.color = "steelblue", 
+      # sets.bar.color = "tomato", 
+      order.by = c("degree"))
+dev.off()
+
+## 绘制下调基因的UpSet图
+pdf(file = 'result/20250729/upset_down.pdf',height = 4,width = 6)
+upset(fromList2(down_genes), 
+      nsets = length(down_genes),  # 显示所有集合
+      # main.bar.color = "steelblue", 
+      # sets.bar.color = "tomato", 
+      order.by = c("degree"))
+dev.off()
+
+## 获取知道交集的基因分别是哪些基因
+
+## 获取上调基因的交集情况
+up_upset <- as.data.frame(fromList2(up_genes))
+down_upset <- as.data.frame(fromList2(down_genes))
+
+
+## 根据图上的要求，输出需要的交集结果
+row.names(up_upset)[rowSums(up_upset) == 6]
+row.names(down_upset)[rowSums(down_upset) == 6]
+
+## up中只在HSC中没有的
+row.names(up_upset[up_upset$ALL == 1 & 
+         up_upset$HSC == 0 &
+         up_upset$MPP1 == 1 &
+         up_upset$MPP2_3 == 1 &
+         up_upset$cMPP2_3 == 1 &
+         up_upset$MPP4 == 1 ,])
+
+##up中只在cMPP2_3中没有的
+row.names(up_upset[up_upset$ALL == 1 & 
+         up_upset$HSC == 1 &
+         up_upset$MPP1 == 1 &
+         up_upset$MPP2_3 == 1 &
+         up_upset$cMPP2_3 == 0 &
+         up_upset$MPP4 == 1 ,])
+
+##up中只在MPP1中没有的
+row.names(up_upset[up_upset$ALL == 1 & 
+         up_upset$HSC == 1 &
+         up_upset$MPP1 == 0 &
+         up_upset$MPP2_3 == 1 &
+         up_upset$cMPP2_3 == 1 &
+         up_upset$MPP4 == 1 ,])
+
+## down中只在MPP1中没有的
+row.names(down_upset[down_upset$ALL == 1 & 
+         down_upset$HSC == 1 &
+         down_upset$MPP1 == 0 &
+         down_upset$MPP2_3 == 1 &
+         down_upset$cMPP2_3 == 1 &
+         down_upset$MPP4 == 1 ,])
