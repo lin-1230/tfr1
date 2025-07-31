@@ -21,7 +21,7 @@ library(data.table)
 
 
 setwd("/media/ssd/sdb1/data/ljh/TFR1/")
-
+source('code/config_seurat.R')
 
 resultDir <- 'result/20250726/'
 dir.create(resultDir, recursive = TRUE)
@@ -290,7 +290,7 @@ interGeneSetGroup <- function(DEGList, geneSet, setName, outDir) {
   }
   return(resultList)
 }
-resultDir <- '/Users/lin/Desktop/backup/project/tfr1/result/2025-07-26-WT-KO差异基因和IRP1和IRP2下游基因取交集'
+# resultDir <- '/Users/lin/Desktop/backup/project/tfr1/result/2025-07-26-WT-KO差异基因和IRP1和IRP2下游基因取交集'
 dir.create(resultDir,recursive = T)
 ## 对FC>1的差异基因进行分析
 ## 创建输出目录
@@ -391,6 +391,84 @@ plotGeneExpressionHeatmap <- function(seurat_obj,
     dev.off()
 }
 
+# seurat_obj <- SeuratOb
+# features <- homerResult$HSC$up$V1
+# group_by <- 'group2'
+
+
+plotGeneExpressionLine <- function(seurat_obj,
+                                 features,
+                                 group_by,
+                                 output_dir,
+                                 output_filename,
+                                 main,
+                                 diffClass,
+                                 linewidth = 0.5,
+                                 height = 5,
+                                 width = 8) {
+    ## 参数解释
+    # seurat_obj: seurat对象
+    # features: 要查看的基因列表
+    # group_by: 分组变量
+    # output_dir: 输出目录
+    # output_filename: 输出文件名
+    # main: 图表标题
+    # diffClass: 基因集中差异基因的类型，分为up和down
+    # height: 图表高度
+    # width: 图表宽度
+
+    # 计算平均表达值
+    avg_expr <- AverageExpression(seurat_obj,
+                                features = features,
+                                group.by = group_by,
+                                slot = "data")
+
+    plot_data <- as.data.frame(avg_expr$RNA)
+
+    ## 取出WT、KO、KO_FAC三列
+    plot_data <- plot_data[,c('WT','KO','KO_FAC')]
+
+    ## 筛选出在FAC中被恢复的基因
+    if (diffClass == 'up') {
+      ## 筛选出在KO比WT表达高，但KO_FAC 比 KO表达低的基因
+      plot_data <- plot_data[(plot_data$KO > plot_data$WT) & (plot_data$KO_FAC < plot_data$KO),]
+    } else if (diffClass == 'down') {
+      ## 筛选出在KO比WT表达低，但KO_FAC 比 KO表达高的基因
+      plot_data <- plot_data[(plot_data$KO < plot_data$WT) & (plot_data$KO_FAC > plot_data$KO),]
+    } else{
+      stop('diffClass参数错误,必须是up或者down')
+    }
+
+    ## 对数据做行scale处理
+    # 对每行数据进行scale标准化
+    plot_data <- as.data.frame(t(apply(plot_data, 1, scale)))
+    colnames(plot_data) <- c('WT','KO','KO_FAC')
+
+    # 将数据转换为适合ggplot2的格式
+    
+    plot_data$Gene <- rownames(plot_data)
+    plot_data_long <- reshape2::melt(plot_data, 
+                                   id.vars = "Gene",
+                                   variable.name = "Group",
+                                   value.name = "Expression")
+
+    # 使用ggplot2绘制折线图
+    p <- ggplot(plot_data_long, aes(x = Group, y = Expression, group = Gene, color = Gene)) +
+        geom_line(linewidth = linewidth) +
+        geom_point(size = 2) +
+        labs(title = main,
+             x = "Group",
+             y = "Average Expression") + themeSet
+    # 保存图片
+    ggsave(file.path(output_dir, output_filename), 
+           plot = p,
+           height = height,
+           width = width)
+    
+    return(p)
+}
+
+
 ## 读取SeuratOb
 SeuratOb <- qread(paste0(RDSDir,'SeuratOb_20250728.qs'))
 
@@ -441,8 +519,35 @@ plotGeneExpressionHeatmap(SeuratOb,
 
 
 
-## 绘制这些list中的交集结果
 
+## 绘制折线图
+## 对每个细胞类型绘制折线图
+dir.create('result/20250730',recursive = T)
+for (name in names(homerResult)) {
+  cat('-----------------------------------\n')
+  cat(paste0('正在绘制', name, '的折线图\n'))
+
+  ## UP基因 
+  cat('正在绘制UP基因的折线图\n')
+  geneSet_up <- homerResult[[name]]$up$V1
+  if(length(geneSet_up) > 0) {
+    plotGeneExpressionLine(SeuratOb,
+                          features = geneSet_up,
+                          group_by = "group2", 
+                          output_dir = "result/20250730",
+                          output_filename = paste0(name,'_up_avgExpr_line.pdf'),
+                          main = paste0("Expression of ",name," up genes"),
+                          diffClass = 'up',
+                          linewidth = 0.3,
+                          height = 5,
+                          width = 8)
+  }
+}
+
+
+
+
+## 绘制这些list中的交集结果
 # 创建空列表存储up和down基因
 up_genes <- list()
 down_genes <- list()

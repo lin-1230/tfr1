@@ -143,5 +143,8 @@ head -2 ${resultDir}/0p5/transcripts_MPP4_up.fasta
 ## 检查所有生成的fasta文件
 ls -l ${resultDir}/0p5/*.fasta
 
-wc -l ${resultDir}/0p5/*.fasta
+## 统计fasta文件的行数并除以2（因为fasta格式每个序列占两行）
+wc -l ${resultDir}/0p5/*.fasta | awk '{print $1/2 " " $2}'
 
+
+wc -l *.fasta | awk '{print $1/2 " " $2}'
